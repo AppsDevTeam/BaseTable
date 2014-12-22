@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tables;
+namespace ADT;
 
 abstract class BaseTable extends \Nette\Object
 {
