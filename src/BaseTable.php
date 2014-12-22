@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Tables;
+
+abstract class BaseTable extends \Nette\Object
+{
+	/** @var Nette\Database\Context $connection Spojeni na databazi */
+	protected $connection;
+
+	/** @var Array */	
+	protected $columns = array();
+	
+	public function __construct(\Nette\Database\Context $connection) 
+	{
+		$this->connection = $connection;
+		$this->columns = $this->getTableColumns();
+	}
+	
+	/**
+	 * @return \Nette\Database\Table\Selection
+	 */
+	protected function getTable() 
+	{
+		return $this->connection->table($this->tableName);
+	}
+	
+	public function truncate()
+	{
+		$this->connection->query('TRUNCATE ' . $this->tableName);
+	}
+	
+	public function getTableName()
+	{
+		$name = $this->getReflection()->getShortName();
+		$name = lcfirst($name);
+		$name = preg_replace('/[A-Z]/', '_${0}', $name);
+		$name = strtolower($name);
+		return $name;
+	}
+	
+	public function getPrimary()
+	{
+		return $this->getTable()->primary;
+	}
+	
+	protected function getTableColumns() 
+	{
+		$data = $this->connection->fetchAll("DESCRIBE " . $this->tableName);
+		foreach($data as $column) {
+			$columns[$column['Field']] = $column['Field'];
+		}
+		return $columns;
+	}	
+	
+	/**
+	 * @return \Nette\Database\Table\Selection
+	 */
+	public function findAll() 
+	{
+		return $this->getTable();
+	}
+	
+	/**
+	 * @return \Nette\Database\Table\Selection
+	 */
+	public function findAllBy($condition, $parameters = array()) 
+	{
+		return $this->findAll()->where($condition, $parameters);
+	}
+	
+	public function find($id)
+	{
+		return $this->findAllBy($this->getTableName() . '.' . $this->getPrimary(), $id);
+	}
+	
+	/**
+	 * @return FALSE|\Nette\Database\Table\ActiveRow
+	 */
+	public function findBy($condition, $parameters = array()) 
+	{
+		return $this->findAllBy($condition, $parameters)->limit(1)->fetch();
+	}
+	
+	/**
+	 * @param mixed Hodnota primarniho klice
+	 * @return FALSE|Nette\Database\Table\ActiveRow
+	 */
+	public function get($id) {
+		return $this->getTable()->get($id);
+	}
+	
+	/**
+	 * @return FALSE|\Nette\Database\Table\ActiveRow
+	 */
+	public function getBy($column, $value) 
+	{
+		return $this->findAllBy($column, $value)->limit(1)->fetch();
+	}
+
+	/**
+	 * @return \Nette\Database\Table\ActiveRow
+	 */	
+	public function insert($data) 
+	{		
+		// vyfiltrujeme sloupce, ktere nejsou v tabulce
+		$data = $this->filterColumns($data);
+		
+		if(empty($data[$this->getPrimary()])) {
+			unset($data[$this->getPrimary()]);
+		}
+		
+		return $this->getTable()->insert($data);
+	}
+	
+	protected function filterColumns($data) 
+	{
+		// vyberu pouze hodnoty ktere nejsou pole nebo objekt Nette\ArrayHash, protoze o tech vim, ze ty urcite nepotrebuju
+		$values = array();
+		foreach($data as $key => $value) {
+			if(!($value instanceof Nette\ArrayHash) && !is_array($value)) {
+				$values[$key] = $value;
+			}
+		}
+		
+		// udelam prunik zbylych hodnot s polem obsahujicim sloupce tabulky... u pole se sloupci musim prohodit klice a hodnoty
+		return array_intersect_key($values, array_flip($this->columns));
+	}
+	
+	/**
+	 * @param mixed $data
+	 * @return int|FALSE number of affected rows or FALSE
+	 */
+	public function update($data) 
+	{
+		$primary_key = $this->getTable()->primary;
+
+		// vyfiltrujeme sloupce, ktere nejsou v tabulce
+		$data = $this->filterColumns($data);	
+		
+		// zde nesmi byt getOne, protoze kdyz by bylo ID NULL, tak by se upravovala defaultni polozka
+		$item = $this->getTable()->get($data[$primary_key]);
+		$item->update($data);
+		return $item;
+	}
+	
+	public function delete($id) 
+	{
+		return $this->getTable()->get($id)->delete();
+	}
+	
+	public function rowExist($column, $value, $id = NULL)
+	{
+		return (bool) $this->findAll()->where($column, $value)->where('id != ?', $id ? $id : 0)->fetch();
+	}
+	
+	public function rowExistExcept($column, $value, $exceptValue)
+	{
+		return (bool) $this->findAllBy(array(
+			$column => $value,
+			$column.' != ?' => $exceptValue
+		))
+			->limit(1)
+			->fetch();
+	}
+	
+	public function getPairs($id = NULL) 
+	{
+		$pairs = $this->findAll();
+		if ($id) {
+			$pairs->where('id', $id);
+		}
+		return $pairs->order('name')->fetchPairs('id', 'name');
+	}
+}
