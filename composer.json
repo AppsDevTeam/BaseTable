@@ -17,8 +17,7 @@
 		"issues": "https://github.com/AppsDevTeam/BaseTable/issues"
 	},
 	"require": {
-		"nette/nette": "~2.2",
-		"adt/bootstrap-form-renderer": "dev-master"
+		"nette/nette": "~2.2"
 	},
 	"autoload": {
 		"psr-4": {
