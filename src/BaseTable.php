@@ -163,12 +163,8 @@ abstract class BaseTable extends \Nette\Object
 			->fetch();
 	}
 	
-	public function getPairs($id = NULL) 
+	public function getPairs() 
 	{
-		$pairs = $this->findAll();
-		if ($id) {
-			$pairs->where('id', $id);
-		}
-		return $pairs->order('name')->fetchPairs('id', 'name');
+		return $this->findAll()->order('name')->fetchPairs('id', 'name');
 	}
 }
