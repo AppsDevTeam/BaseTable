@@ -48,7 +48,7 @@ abstract class BaseTable extends \Nette\Object
 	
 	protected function getTableColumns() 
 	{
-		return $this->getCache()->load($this->reflection->name . '-' . __FUNCTION__, function() {
+		return $this->getCache()->load(str_replace('\\', '-', $this->reflection->name) . '-' . __FUNCTION__, function() {
 			$data = $this->connection->fetchAll("DESCRIBE " . $this->tableName);
 			foreach($data as $column) {
 				$columns[$column['Field']] = $column['Field'];
