@@ -6,13 +6,16 @@ abstract class BaseTable extends \Nette\Object
 {
 	/** @var Nette\Database\Context $connection Spojeni na databazi */
 	protected $connection;
+	protected $storage = NULL;
+	protected $cache = NULL;
 
 	/** @var Array */	
 	protected $columns = array();
 	
-	public function __construct(\Nette\Database\Context $connection) 
+	public function __construct(\Nette\Database\Context $connection, \Nette\Caching\IStorage $storage) 
 	{
 		$this->connection = $connection;
+		$this->storage = $storage;
 		$this->columns = $this->getTableColumns();
 	}
 	
@@ -45,11 +48,13 @@ abstract class BaseTable extends \Nette\Object
 	
 	protected function getTableColumns() 
 	{
-		$data = $this->connection->fetchAll("DESCRIBE " . $this->tableName);
-		foreach($data as $column) {
-			$columns[$column['Field']] = $column['Field'];
-		}
-		return $columns;
+		return $this->getCache()->load(__FUNCTION__, function() {
+			$data = $this->connection->fetchAll("DESCRIBE " . $this->tableName);
+			foreach($data as $column) {
+				$columns[$column['Field']] = $column['Field'];
+			}
+			return $columns;
+		});
 	}	
 	
 	/**
@@ -166,5 +171,10 @@ abstract class BaseTable extends \Nette\Object
 	public function getPairs() 
 	{
 		return $this->findAll()->order('name')->fetchPairs('id', 'name');
+	}
+	
+	protected function getCache() 
+	{
+		return new \Nette\Caching\Cache($this->storage);
 	}
 }
