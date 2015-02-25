@@ -103,6 +103,20 @@ abstract class BaseTable extends \Nette\Object
 	}
 
 	/**
+	 * Pokud je uveden neprázdný primární klíč, je proveden update, jinak insert.
+	 * @return FALSE|\Nette\Database\Table\ActiveRow
+	 */
+	public function save($values) {
+		$primary_key = $this->getTable()->primary;
+
+		if (empty($values[$primary_key])) {
+			return $this->insert($values);
+		} else {
+			return $this->update($values);
+		}
+	}
+
+	/**
 	 * @return \Nette\Database\Table\ActiveRow
 	 */	
 	public function insert($data) 
