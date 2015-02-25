@@ -9,29 +9,29 @@ abstract class BaseTable extends \Nette\Object
 	protected $storage = NULL;
 	protected $cache = NULL;
 
-	/** @var Array */	
+	/** @var Array */
 	protected $columns = array();
-	
-	public function __construct(\Nette\Database\Context $connection, \Nette\Caching\IStorage $storage) 
+
+	public function __construct(\Nette\Database\Context $connection, \Nette\Caching\IStorage $storage)
 	{
 		$this->connection = $connection;
 		$this->storage = $storage;
 		$this->columns = $this->getTableColumns();
 	}
-	
+
 	/**
 	 * @return \Nette\Database\Table\Selection
 	 */
-	protected function getTable() 
+	protected function getTable()
 	{
 		return $this->connection->table($this->tableName);
 	}
-	
+
 	public function truncate()
 	{
-		$this->connection->query('TRUNCATE ' . $this->tableName);
+		$this->connection->query("TRUNCATE ". $this->delimitedTableName);
 	}
-	
+
 	public function getTableName()
 	{
 		$name = $this->getReflection()->getShortName();
@@ -40,52 +40,59 @@ abstract class BaseTable extends \Nette\Object
 		$name = strtolower($name);
 		return $name;
 	}
-	
+
+	public function getDelimitedTableName() {
+		return $this->connection
+			->getConnection()
+			->getSupplementalDriver()
+			->delimite($this->getTableName());
+	}
+
 	public function getPrimary()
 	{
 		return $this->getTable()->primary;
 	}
-	
-	protected function getTableColumns() 
+
+	protected function getTableColumns()
 	{
 		return $this->getCache()->load(str_replace('\\', '-', $this->reflection->name) . '-' . __FUNCTION__, function() {
-			$data = $this->connection->fetchAll("DESCRIBE " . $this->tableName);
+			$data = $this->connection->fetchAll("DESCRIBE ". $this->delimitedTableName);
 			foreach($data as $column) {
 				$columns[$column['Field']] = $column['Field'];
 			}
 			return $columns;
 		});
-	}	
-	
+	}
+
 	/**
 	 * @return \Nette\Database\Table\Selection
 	 */
-	public function findAll() 
+	public function findAll()
 	{
 		return $this->getTable();
 	}
-	
+
 	/**
 	 * @return \Nette\Database\Table\Selection
 	 */
-	public function findAllBy($condition, $parameters = array()) 
+	public function findAllBy($condition, $parameters = array())
 	{
 		return $this->findAll()->where($condition, $parameters);
 	}
-	
+
 	public function find($id)
 	{
 		return $this->findAllBy($this->getTableName() . '.' . $this->getPrimary(), $id);
 	}
-	
+
 	/**
 	 * @return FALSE|\Nette\Database\Table\ActiveRow
 	 */
-	public function findBy($condition, $parameters = array()) 
+	public function findBy($condition, $parameters = array())
 	{
 		return $this->findAllBy($condition, $parameters)->limit(1)->fetch();
 	}
-	
+
 	/**
 	 * @param mixed Hodnota primarniho klice
 	 * @return FALSE|Nette\Database\Table\ActiveRow
@@ -93,11 +100,11 @@ abstract class BaseTable extends \Nette\Object
 	public function get($id) {
 		return $this->getTable()->get($id);
 	}
-	
+
 	/**
 	 * @return FALSE|\Nette\Database\Table\ActiveRow
 	 */
-	public function getBy($column, $value) 
+	public function getBy($column, $value)
 	{
 		return $this->findAllBy($column, $value)->limit(1)->fetch();
 	}
@@ -118,20 +125,20 @@ abstract class BaseTable extends \Nette\Object
 
 	/**
 	 * @return \Nette\Database\Table\ActiveRow
-	 */	
-	public function insert($data) 
-	{		
+	 */
+	public function insert($data)
+	{
 		// vyfiltrujeme sloupce, ktere nejsou v tabulce
 		$data = $this->filterColumns($data);
-		
+
 		if(empty($data[$this->getPrimary()])) {
 			unset($data[$this->getPrimary()]);
 		}
-		
+
 		return $this->getTable()->insert($data);
 	}
-	
-	protected function filterColumns($data) 
+
+	protected function filterColumns($data)
 	{
 		// vyberu pouze hodnoty ktere nejsou pole nebo objekt Nette\ArrayHash, protoze o tech vim, ze ty urcite nepotrebuju
 		$values = array();
@@ -140,38 +147,38 @@ abstract class BaseTable extends \Nette\Object
 				$values[$key] = $value;
 			}
 		}
-		
+
 		// udelam prunik zbylych hodnot s polem obsahujicim sloupce tabulky... u pole se sloupci musim prohodit klice a hodnoty
 		return array_intersect_key($values, array_flip($this->columns));
 	}
-	
+
 	/**
 	 * @param mixed $data
 	 * @return int|FALSE number of affected rows or FALSE
 	 */
-	public function update($data) 
+	public function update($data)
 	{
 		$primary_key = $this->getTable()->primary;
 
 		// vyfiltrujeme sloupce, ktere nejsou v tabulce
-		$data = $this->filterColumns($data);	
-		
+		$data = $this->filterColumns($data);
+
 		// zde nesmi byt getOne, protoze kdyz by bylo ID NULL, tak by se upravovala defaultni polozka
 		$item = $this->getTable()->get($data[$primary_key]);
 		$item->update($data);
 		return $item;
 	}
-	
-	public function delete($id) 
+
+	public function delete($id)
 	{
 		return $this->getTable()->get($id)->delete();
 	}
-	
+
 	public function rowExist($column, $value, $id = NULL)
 	{
 		return (bool) $this->findAll()->where($column, $value)->where('id != ?', $id ? $id : 0)->fetch();
 	}
-	
+
 	public function rowExistExcept($column, $value, $exceptValue)
 	{
 		return (bool) $this->findAllBy(array(
@@ -181,13 +188,13 @@ abstract class BaseTable extends \Nette\Object
 			->limit(1)
 			->fetch();
 	}
-	
-	public function getPairs() 
+
+	public function getPairs()
 	{
 		return $this->findAll()->order('name')->fetchPairs('id', 'name');
 	}
-	
-	protected function getCache() 
+
+	protected function getCache()
 	{
 		return new \Nette\Caching\Cache($this->storage);
 	}
