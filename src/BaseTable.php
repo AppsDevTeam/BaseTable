@@ -198,4 +198,26 @@ abstract class BaseTable extends \Nette\Object
 	{
 		return new \Nette\Caching\Cache($this->storage);
 	}
+
+	/**
+	 * Provede zadaný SQL dotaz. Přijímá nekonečně mnoho parametrů.
+	 * @param string $statement SQL dotaz
+	 * @param mixed [parameters, ...]
+	 * @return Statement
+	 */
+	public function query($statement){
+		$args = func_get_args();
+		return $this->getConnection()->queryArgs(array_shift($args), $args);
+	}
+
+	/**
+	 * Provede zadaný SQL dotaz.
+	 * @param string $statement SQL dotaz
+	 * @param array $params parametry
+	 * @return Statement
+	 */
+	public function queryArgs($statement, $params){
+		return $this->getConnection()->queryArgs($statement, $params);
+	}
+	
 }
