@@ -207,7 +207,7 @@ abstract class BaseTable extends \Nette\Object
 	 */
 	public function query($statement){
 		$args = func_get_args();
-		return $this->getConnection()->queryArgs(array_shift($args), $args);
+		return $this->connection->queryArgs(array_shift($args), $args);
 	}
 
 	/**
@@ -217,7 +217,7 @@ abstract class BaseTable extends \Nette\Object
 	 * @return Statement
 	 */
 	public function queryArgs($statement, $params){
-		return $this->getConnection()->queryArgs($statement, $params);
+		return $this->connection->queryArgs($statement, $params);
 	}
-	
+
 }
