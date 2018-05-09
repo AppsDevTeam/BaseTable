@@ -169,9 +169,15 @@ abstract class BaseTable extends \Nette\Object
 		return $item;
 	}
 
+	/**
+	 * @param $id
+	 * @return int
+	 */
 	public function delete($id)
 	{
-		return $this->getTable()->get($id)->delete();
+		return $this->findAll()
+			->where('id = ?', $id)
+			->delete();
 	}
 
 	public function rowExist($column, $value, $id = NULL)
