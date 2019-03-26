@@ -2,8 +2,10 @@
 
 namespace ADT;
 
-abstract class BaseTable extends \Nette\Object
+abstract class BaseTable
 {
+	use \Nette\SmartObject;
+	
 	/** @var Nette\Database\Context $connection Spojeni na databazi */
 	protected $connection;
 	protected $storage = NULL;
