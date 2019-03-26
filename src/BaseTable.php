@@ -52,7 +52,7 @@ abstract class BaseTable
 
 	public function getPrimary()
 	{
-		return $this->getTable()->primary;
+		return $this->getTable()->getPrimary();
 	}
 
 	protected function getTableColumns()
@@ -116,7 +116,7 @@ abstract class BaseTable
 	 * @return FALSE|\Nette\Database\Table\ActiveRow
 	 */
 	public function save($values) {
-		$primary_key = $this->getTable()->primary;
+		$primary_key = $this->getTable()->getPrimary();
 
 		if (empty($values[$primary_key])) {
 			return $this->insert($values);
@@ -160,7 +160,7 @@ abstract class BaseTable
 	 */
 	public function update($data)
 	{
-		$primary_key = $this->getTable()->primary;
+		$primary_key = $this->getTable()->getPrimary();
 
 		// vyfiltrujeme sloupce, ktere nejsou v tabulce
 		$data = $this->filterColumns($data);
