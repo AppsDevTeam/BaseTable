@@ -26,17 +26,17 @@ abstract class BaseTable
 	 */
 	protected function getTable()
 	{
-		return $this->connection->table($this->tableName);
+		return $this->connection->table($this->getTableName());
 	}
 
 	public function truncate()
 	{
-		$this->connection->query("TRUNCATE ". $this->delimitedTableName);
+		$this->connection->query("TRUNCATE ". $this->getDelimitedTableName());
 	}
 
 	public function getTableName()
 	{
-		$name = $this->getReflection()->getShortName();
+		$name = (new \ReflectionClass($this))->getShortName();
 		$name = lcfirst($name);
 		$name = preg_replace('/[A-Z]/', '_${0}', $name);
 		$name = strtolower($name);
@@ -57,8 +57,8 @@ abstract class BaseTable
 
 	protected function getTableColumns()
 	{
-		return $this->getCache()->load(str_replace('\\', '-', $this->reflection->name) . '-' . __FUNCTION__, function() {
-			$data = $this->connection->fetchAll("DESCRIBE ". $this->delimitedTableName);
+		return $this->getCache()->load(str_replace('\\', '-', (new \ReflectionClass($this))->name) . '-' . __FUNCTION__, function() {
+			$data = $this->connection->fetchAll("DESCRIBE ". $this->getDelimitedTableName());
 			foreach($data as $column) {
 				$columns[$column['Field']] = $column['Field'];
 			}
